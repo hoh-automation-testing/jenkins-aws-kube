@@ -8,14 +8,18 @@ RUN apk --no-cache add \
         bash curl ca-certificates \
         coreutils git gnupg \
         openssl jq openssh-server dos2unix
-        
 
-RUN sed -i 's|session    required     pam_loginuid.so|session    optional     pam_loginuid.so|g' /etc/pam.d/sshd
-RUN mkdir -p /var/run/sshd
 
+#RUN sed -i 's|session    required     pam_loginuid.so|session    optional     pam_loginuid.so|g' /etc/pam.d/sshd
+# RUN mkdir -p /var/run/sshd
+# add openssh and clean
+# add entrypoint script
+ADD docker-entrypoint.sh /usr/local/bin
+#make sure we get fresh keys
+RUN rm -rf /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_dsa_key
 
 # Add user jenkins to the image
-RUN adduser --quiet jenkins
+RUN adduser jenkins -D
 # Set password for the jenkins user (you may want to alter this).
 RUN echo "jenkins:jenkins" | chpasswd
 
@@ -23,11 +27,11 @@ RUN echo "jenkins:jenkins" | chpasswd
 
 # ADD settings.xml /home/jenkins/.m2/
 
-RUN chown -R jenkins:jenkins /home/jenkins/.m2/ 
+# RUN chown -R jenkins:jenkins /home/jenkins/.m2/
 
 
 # Install Terraform 0.13
-ENV TF_VERSION="0.13.3"
+ENV TF_VERSION="0.13.5"
 ENV TF_BASE_URL="https://releases.hashicorp.com/terraform" \
     TF_FILE_NAME="terraform_${TF_VERSION}_linux_amd64.zip" \
     TF_CHECKSUM_FILE_NAME="terraform_${TF_VERSION}_SHA256SUMS" \
@@ -94,7 +98,6 @@ RUN curl -L ${HELM_BASE_URL}/${HELM_TAR_FILE} | tar xvz && \
 
 
 
-# Standard SSH port
 EXPOSE 22
-
-CMD ["/usr/sbin/sshd", "-D"]
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["/usr/sbin/sshd","-D"]
